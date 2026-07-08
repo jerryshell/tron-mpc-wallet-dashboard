@@ -1,0 +1,33 @@
+{
+  "name": "tron-mpc-wallet-dashboard",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "nuxt build",
+    "dev": "nuxt dev",
+    "preview": "nuxt preview",
+    "postinstall": "nuxt prepare",
+    "lint": "oxlint .",
+    "format": "oxfmt .",
+    "typecheck": "nuxt typecheck"
+  },
+  "dependencies": {
+    "@fystack/mpcium-ts": "^0.3.2",
+    "@iconify-json/lucide": "^1.2.117",
+    "@libsql/client": "^0.17.4",
+    "@nuxt/ui": "^4.10.0",
+    "@vueuse/nuxt": "^14.3.0",
+    "nats": "^2.29.3",
+    "nuxt": "^4.4.8",
+    "tronweb": "^6.4.0",
+    "uuid": "^14.0.1",
+    "zod": "^4.4.3"
+  },
+  "devDependencies": {
+    "oxfmt": "^0.59.0",
+    "oxlint": "^1.74.0",
+    "tailwindcss": "^4.3.2",
+    "vue-tsc": "^3.3.7"
+  }
+}
