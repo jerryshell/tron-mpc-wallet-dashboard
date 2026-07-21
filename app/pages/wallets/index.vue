@@ -120,6 +120,11 @@ const editingWalletId = ref("");
 const editingRemark = ref("");
 const editing = ref(false);
 
+// 地址检查相关
+const verifyOpen = ref(false);
+const verifying = ref(false);
+const verifyResult = ref<any>(null);
+
 function openEdit(wallet: any) {
   editingWalletId.value = wallet.id;
   editingRemark.value = wallet.remark || "";
@@ -142,6 +147,26 @@ async function onUpdateWallet(event: { remark?: string }) {
     editing.value = false;
   }
 }
+
+async function onVerifyAddresses() {
+  verifying.value = true;
+  verifyResult.value = null;
+  verifyOpen.value = true;
+  try {
+    const result = await $fetch("/api/wallets/verify-addresses", {
+      method: "POST",
+    });
+    verifyResult.value = result;
+    if (result.fixedCount > 0) {
+      await refresh();
+    }
+  } catch (e: any) {
+    toast.add({ title: "验证失败", description: e.message, color: "error" });
+    verifyOpen.value = false;
+  } finally {
+    verifying.value = false;
+  }
+}
 </script>
 
 <template>
@@ -154,6 +179,14 @@ async function onUpdateWallet(event: { remark?: string }) {
 
         <template #right>
           <div class="flex items-center gap-2">
+            <UButton
+              label="检查地址"
+              icon="i-lucide-shield-check"
+              color="warning"
+              :loading="verifying"
+              @click="onVerifyAddresses"
+            />
+
             <UButton
               label="创建钱包"
               icon="i-lucide-plus"
@@ -181,6 +214,93 @@ async function onUpdateWallet(event: { remark?: string }) {
               :loading="editing"
               @submit="onUpdateWallet"
             />
+
+            <!-- 地址检查结果弹窗 -->
+            <UModal v-model:open="verifyOpen" title="地址检查结果" :ui="{ width: 'max-w-2xl' }">
+              <template #body>
+                <div v-if="verifying" class="flex items-center justify-center py-8">
+                  <Spinner text="正在检查所有钱包地址..." />
+                </div>
+                <div v-else-if="verifyResult" class="space-y-4">
+                  <div class="grid grid-cols-3 gap-3">
+                    <div class="bg-elevated rounded-lg p-3 text-center">
+                      <div class="text-2xl font-bold text-primary">{{ verifyResult.total }}</div>
+                      <div class="text-xs text-muted">总钱包数</div>
+                    </div>
+                    <div class="bg-elevated rounded-lg p-3 text-center">
+                      <div class="text-2xl font-bold text-success">
+                        {{ verifyResult.validCount }}
+                      </div>
+                      <div class="text-xs text-muted">地址正确</div>
+                    </div>
+                    <div class="bg-elevated rounded-lg p-3 text-center">
+                      <div
+                        class="text-2xl font-bold"
+                        :class="verifyResult.fixedCount > 0 ? 'text-warning' : 'text-success'"
+                      >
+                        {{ verifyResult.fixedCount }}
+                      </div>
+                      <div class="text-xs text-muted">已修复</div>
+                    </div>
+                  </div>
+
+                  <div
+                    v-if="verifyResult.fixedCount > 0"
+                    class="bg-warning/10 border border-warning/20 rounded-lg p-3"
+                  >
+                    <div class="flex items-center gap-2 text-warning">
+                      <UIcon name="i-lucide-alert-triangle" class="size-4" />
+                      <span class="text-sm font-medium"
+                        >发现并修复了 {{ verifyResult.fixedCount }} 个地址不匹配的钱包</span
+                      >
+                    </div>
+                  </div>
+
+                  <div class="max-h-64 overflow-y-auto">
+                    <table class="w-full text-sm">
+                      <thead>
+                        <tr class="border-b border-default">
+                          <th class="text-left py-2 px-2 text-muted font-medium">备注</th>
+                          <th class="text-left py-2 px-2 text-muted font-medium">状态</th>
+                          <th class="text-left py-2 px-2 text-muted font-medium">操作</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <tr
+                          v-for="item in verifyResult.results"
+                          :key="item.id"
+                          class="border-b border-default"
+                        >
+                          <td class="py-2 px-2">{{ item.remark }}</td>
+                          <td class="py-2 px-2">
+                            <UBadge v-if="item.isValid" color="success" variant="subtle" size="sm"
+                              >正确</UBadge
+                            >
+                            <UBadge
+                              v-else-if="item.fixed"
+                              color="warning"
+                              variant="subtle"
+                              size="sm"
+                              >已修复</UBadge
+                            >
+                            <UBadge v-else color="error" variant="subtle" size="sm">无公钥</UBadge>
+                          </td>
+                          <td class="py-2 px-2">
+                            <NuxtLink :to="`/wallets/${item.id}`">
+                              <UButton label="查看" color="neutral" variant="ghost" size="xs" />
+                            </NuxtLink>
+                          </td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+
+                  <div class="flex justify-end pt-2">
+                    <UButton label="关闭" color="neutral" @click="verifyOpen = false" />
+                  </div>
+                </div>
+              </template>
+            </UModal>
           </div>
         </template>
       </UDashboardNavbar>
